@@ -1,6 +1,6 @@
-import { Stage, Layer, Image, Text } from 'react-konva';
+import { Stage, Layer, Image } from 'react-konva';
 import { useEffect, useRef, useState } from 'react';
-import { Play, CircleStop, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import Konva from 'konva';
 import './video-player.css';
 
@@ -15,11 +15,10 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   });
   const [videoElement] = useState(() => {
     const element = document.createElement('video');
-    element.src = videoUrl;
-    return element;
+    element.src = videoUrl;    return element;
   });
   const [, setVideoSize] = useState({ width: 0, height: 0 });
-  const [status, setStatus] = useState('Loading video...');
+  const [status, setStatus] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -34,7 +33,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
 
   useEffect(() => {
     const handleMetadata = () => {
-      setStatus('');
+      setStatus(false);
       setVideoSize({
         width: videoElement.videoWidth,
         height: videoElement.videoHeight,
@@ -57,7 +56,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   }, [videoElement]);
 
   const handlePlay = () => {
-    setStatus('');
+    setStatus(false);
     setIsPlaying(true);
     videoElement.play();
     if (layerRef.current) {
@@ -159,23 +158,17 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
             width={dimensions.width}
             height={dimensions.height}
           />
-          {status && (
-            <Text
-              text={status}
-              width={dimensions.width}
-              height={dimensions.height}
-              align="center"
-              verticalAlign="middle"
-              fill="white"
-              fontSize={20}
-            />
-          )}
         </Layer>
       </Stage>
+      {status && (
+        <div className="loading-indicator">
+          <div className="spinner"></div>
+        </div>
+      )}
 
       {showControls && (
         <>
-          <div 
+          <div
             className="seekbar"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -186,7 +179,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
             }}
           >
             <div className="seekbar-background"></div>
-            <div 
+            <div
               className="seekbar-progress" 
               style={{ width: `${progress}%` }}
             ></div>
@@ -194,27 +187,27 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
           <div className="controls">
             <div className="controls-left">
               <button onClick={isPlaying ? handlePause : handlePlay} className="control-button">
-                {isPlaying ? <CircleStop /> : <Play />}
+                {isPlaying ? <Pause /> : <Play />}
               </button>
               <div className="volume-control">
-                <button onClick={toggleMute} className="control-button">
+                <button onClick={toggleMute} className="control-button" tabIndex={0}>
                   {isMuted ? <VolumeX /> : <Volume2 />}
                 </button>
-                <div 
-                  className="volume-slider" 
+                <div
+                  className="volume-slider"
                   onClick={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const x = e.clientX - rect.left;
                     handleVolumeChange(x, rect.width);
                   }}
                 >
-                  <div 
-                    className="volume-progress" 
+                  <div
+                    className="volume-progress"
                     style={{ width: `${isMuted ? 0 : volume * 100}%` }}
                   />
                 </div>
               </div>
-              <div className="time-display" style={{marginLeft: 16}}>
+              <div className="time-display">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
             </div>

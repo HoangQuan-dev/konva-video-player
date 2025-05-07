@@ -90,25 +90,36 @@
 
 .time-display {
   color: white;
-  font-size: 14px;
-  font-family: monospace;
+  font-size: 13px;
   min-width: 100px;
-  text-align: right;
+  text-align: left;
 }
 
 .volume-control {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+  transition: all 0.3s ease;
 }
 
 .volume-slider {
-  width: 80px;
+  width: 0;
   height: 4px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
   cursor: pointer;
   position: relative;
+  opacity: 0;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  transform-origin: left;
+}
+
+.volume-control:hover .volume-slider,
+.volume-control:focus-within .volume-slider {
+  width: 80px;
+  opacity: 1;
 }
 
 .volume-progress {
@@ -116,4 +127,37 @@
   background-color: #ff0000;
   border-radius: 2px;
   transition: width 0.1s ease;
+}
+
+/* Loading indicator styles */
+.loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 20;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
