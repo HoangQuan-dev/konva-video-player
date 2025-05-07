@@ -60,7 +60,7 @@ const VideoList = ({ videos, onSelectVideo, activeVideoId }: VideoListProps) => 
   return (
     <div className="video-list-container" ref={listRef}>
       <div className="video-list-header">
-        <h3>Video Library</h3>
+        <h3>Videos</h3>
       </div>
       <div className="video-list">
         {videos.map((video) => (

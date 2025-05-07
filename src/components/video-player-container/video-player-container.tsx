@@ -93,6 +93,28 @@ const VideoPlayerContainer = () => {  const [activeVideo, setActiveVideo] = useS
       return () => clearTimeout(timer);
     }
   }, [shouldAutoPlay, activeVideo]);
+
+  // Setup global drag event handlers for the first drag
+  useEffect(() => {
+    // Helper function to handle dragenter events from anywhere
+    const handleGlobalDragEnter = (e: DragEvent) => {
+      // Check if this is a valid video drag operation
+      if (e.dataTransfer?.types.includes('text/plain')) {
+        // Set dragging state to true if target is within the player wrapper
+        if (playerWrapperRef.current?.contains(e.target as Node)) {
+          setIsDraggingOver(true);
+        }
+      }
+    };
+
+    // Add the global event listener
+    document.addEventListener('dragenter', handleGlobalDragEnter);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('dragenter', handleGlobalDragEnter);
+    };
+  }, []);
   
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -110,11 +132,16 @@ const VideoPlayerContainer = () => {  const [activeVideo, setActiveVideo] = useS
       setIsDraggingOver(false);
     }
   };
+    // Add effect to log when drag state changes (for debugging)
+  useEffect(() => {
+    console.log('Drag state changed:', isDraggingOver);
+  }, [isDraggingOver]);
   
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
+    setIsDraggingOver(true);
   };
   const handleSelectVideo = (video: Video) => {
     setActiveVideo(video);
@@ -147,11 +174,11 @@ const VideoPlayerContainer = () => {  const [activeVideo, setActiveVideo] = useS
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >        <VideoPlayer 
+        onDrop={handleDrop}>
+        <VideoPlayer
           videoUrl={activeVideo.url} 
           autoPlay={shouldAutoPlay}
-          onDragOver={() => {}}
+          onDragOver={() => setIsDraggingOver(true)}
           onDragLeave={() => {}}
           onDrop={() => {}}
         />

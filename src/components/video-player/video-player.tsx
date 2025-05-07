@@ -170,23 +170,25 @@ const VideoPlayer = ({ videoUrl, autoPlay = false, onDragOver, onDragLeave, onDr
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
   return (
-    <div 
+    <div
       className="video-container" 
       onMouseMove={handleMouseMove}
-      style={{ height: dimensions.height }}      onDragOver={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      style={{ height: dimensions.height }}
+      onDragOver={(e) => {
+        e.preventDefault(); 
+        // Don't stop propagation to allow parent container to handle it
         e.dataTransfer.dropEffect = 'move';
         onDragOver && onDragOver();
       }}
+      onDragEnter={(e) => {
+        e.preventDefault();
+      }}
       onDragLeave={(e) => {
         e.preventDefault();
-        e.stopPropagation();
         onDragLeave && onDragLeave();
       }}
       onDrop={(e) => {
         e.preventDefault();
-        e.stopPropagation();
         const videoId = e.dataTransfer.getData('text/plain');
         if (videoId && onDrop) {
           onDrop(videoId);
