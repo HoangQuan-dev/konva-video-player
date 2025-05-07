@@ -1,4 +1,4 @@
-import { Stage, Layer, Image, Text, Rect, Group } from 'react-konva';
+import { Stage, Layer, Image, Text } from 'react-konva';
 import { useEffect, useRef, useState } from 'react';
 import { Play, CircleStop, Volume2, VolumeX } from 'lucide-react';
 import Konva from 'konva';
@@ -9,7 +9,7 @@ interface VideoPlayerProps {
 }
 
 const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
-  const [dimensions, setDimensions] = useState({
+  const [dimensions,] = useState({
     width: 640,
     height: 360,
   });
@@ -18,7 +18,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     element.src = videoUrl;
     return element;
   });
-  const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
+  const [, setVideoSize] = useState({ width: 0, height: 0 });
   const [status, setStatus] = useState('Loading video...');
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -26,9 +26,11 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [showControls, setShowControls] = useState(true);
   const animationRef = useRef<Konva.Animation | null>(null);
   const layerRef = useRef<Konva.Layer>(null);
   const stageRef = useRef<Konva.Stage>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handleMetadata = () => {
@@ -63,6 +65,9 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
       animationRef.current = anim;
       anim.start();
     }
+    
+    // Auto-hide controls after a delay
+    resetControlsTimeout();
   };
 
   const handlePause = () => {
@@ -71,6 +76,29 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     if (animationRef.current) {
       animationRef.current.stop();
     }
+    
+    // Show controls when paused
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+  };
+
+  const resetControlsTimeout = () => {
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    
+    setShowControls(true);
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 5000);
+  };
+
+  const handleMouseMove = () => {
+    resetControlsTimeout();
   };
 
   const handleStageClick = (e: any) => {
@@ -78,7 +106,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     const pointerPosition = stage.getPointerPosition();
     const controlsHeight = 60;
     
-    if (pointerPosition.y < dimensions.height - controlsHeight) {
+    if (pointerPosition && pointerPosition.y < dimensions.height - controlsHeight) {
       if (isPlaying) {
         handlePause();
       } else {
@@ -86,23 +114,10 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
       }
     }
   };
-
-  const handleSeek = (e: any) => {
-    const stage = e.target.getStage();
-    const pointerPosition = stage.getPointerPosition();
-    const seekBarWidth = dimensions.width;
-    const seekPosition = (pointerPosition.x / seekBarWidth) * videoElement.duration;
-    
-    videoElement.currentTime = seekPosition;
-    setProgress((seekPosition / videoElement.duration) * 100);
-  };
-
-  const handleVolumeChange = (e: any) => {
-    const stage = e.target.getStage();
-    const pointerPosition = stage.getPointerPosition();
-    const volumeBarWidth = 100;
-    const newVolume = Math.max(0, Math.min(1, pointerPosition.x / volumeBarWidth));
-    
+  
+  // Volume control functions
+  const handleVolumeChange = (x: number, width: number) => {
+    const newVolume = Math.max(0, Math.min(1, x / width));
     setVolume(newVolume);
     videoElement.volume = newVolume;
     setIsMuted(newVolume === 0);
@@ -125,10 +140,14 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   };
 
   return (
-    <div className="video-container">
+    <div 
+      className="video-container" 
+      onMouseMove={handleMouseMove}
+      style={{ height: dimensions.height }}
+    >
       <Stage 
         width={dimensions.width} 
-        height={dimensions.height + 20}
+        height={dimensions.height}
         onClick={handleStageClick}
         ref={stageRef}
       >
@@ -152,50 +171,58 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
             />
           )}
         </Layer>
-        <Layer>
-          <Group y={dimensions.height}>
-            <Rect
-              x={0}
-              y={0}
-              width={dimensions.width}
-              height={4}
-              fill="#4a4a4a"
-            />
-            <Rect
-              x={0}
-              y={0}
-              width={(dimensions.width * progress) / 100}
-              height={4}
-              fill="#ff0000"
-              onClick={handleSeek}
-              onTap={handleSeek}
-            />
-          </Group>
-        </Layer>
       </Stage>
-      <div className="controls">
-        <div className="controls-left">
-          <button onClick={isPlaying ? handlePause : handlePlay} className="control-button">
-            {isPlaying ? <CircleStop /> : <Play />}
-          </button>
-          <div className="volume-control">
-            <button onClick={toggleMute} className="control-button">
-              {isMuted ? <VolumeX /> : <Volume2 />}
-            </button>
-            <div className="volume-slider">
-              <div 
-                className="volume-progress" 
-                style={{ width: `${isMuted ? 0 : volume * 100}%` }}
-              />
+
+      {showControls && (
+        <>
+          <div 
+            className="seekbar"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const seekPosition = (x / rect.width) * videoElement.duration;
+              videoElement.currentTime = seekPosition;
+              setProgress((seekPosition / videoElement.duration) * 100);
+            }}
+          >
+            <div className="seekbar-background"></div>
+            <div 
+              className="seekbar-progress" 
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          <div className="controls">
+            <div className="controls-left">
+              <button onClick={isPlaying ? handlePause : handlePlay} className="control-button">
+                {isPlaying ? <CircleStop /> : <Play />}
+              </button>
+              <div className="volume-control">
+                <button onClick={toggleMute} className="control-button">
+                  {isMuted ? <VolumeX /> : <Volume2 />}
+                </button>
+                <div 
+                  className="volume-slider" 
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    handleVolumeChange(x, rect.width);
+                  }}
+                >
+                  <div 
+                    className="volume-progress" 
+                    style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+                  />
+                </div>
+              </div>
+              <div className="time-display" style={{marginLeft: 16}}>
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </div>
             </div>
           </div>
-          <div className="time-display" style={{marginLeft: 16}}>
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 };
 
-export default VideoPlayer; 
+export default VideoPlayer;
