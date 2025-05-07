@@ -1,0 +1,63 @@
+.player-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: #1a1a1a;
+  /* height: calc(360px + 32px); */
+}
+
+.player-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.drop-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 50;
+  border: 3px dashed rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+}
+
+.drop-zone.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drop-zone-icon {
+  color: white;
+  margin-bottom: 16px;
+  animation: bounce 1.5s ease infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.drop-zone-text {
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+}

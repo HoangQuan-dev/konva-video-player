@@ -1,14 +1,18 @@
 import { Stage, Layer, Image } from 'react-konva';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useCallback , useRef, useState } from 'react';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import Konva from 'konva';
 import './video-player.css';
 
 interface VideoPlayerProps {
   videoUrl: string;
+  autoPlay?: boolean;
+  onDragOver?: () => void;
+  onDragLeave?: () => void;
+  onDrop?: (videoId: string) => void;
 }
 
-const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
+const VideoPlayer = ({ videoUrl, autoPlay = false, onDragOver, onDragLeave, onDrop }: VideoPlayerProps) => {
   const [dimensions,] = useState({
     width: 640,
     height: 360,
@@ -30,7 +34,6 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
   const layerRef = useRef<Konva.Layer>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     const handleMetadata = () => {
       setStatus(false);
@@ -54,8 +57,32 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
       videoElement.removeEventListener('timeupdate', handleTimeUpdate);
     };
   }, [videoElement]);
+  // Update video source when videoUrl changes
+  useEffect(() => {
+    videoElement.src = videoUrl;
+    setStatus(true);
+    setProgress(0);
+    setCurrentTime(0);
+    setIsPlaying(false);
+    if (animationRef.current) {
+      animationRef.current.stop();
+    }
+  }, [videoUrl, videoElement]);
 
-  const handlePlay = () => {
+  const resetControlsTimeout = useCallback(() => {
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    
+    setShowControls(true);
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 5000);
+  }, [isPlaying]);
+
+  const handlePlay = useCallback(() => {
     setStatus(false);
     setIsPlaying(true);
     videoElement.play();
@@ -67,7 +94,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     
     // Auto-hide controls after a delay
     resetControlsTimeout();
-  };
+  }, [videoElement, resetControlsTimeout]);
 
   const handlePause = () => {
     setIsPlaying(false);
@@ -83,18 +110,23 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     }
   };
 
-  const resetControlsTimeout = () => {
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
+  // Handle auto-play when the autoPlay prop changes
+  useEffect(() => {
+    if (autoPlay && videoElement.readyState >= 2) {
+      handlePlay();
+    } else if (autoPlay) {
+      // If video is not ready yet, wait for it to be loaded
+      const handleCanPlay = () => {
+        handlePlay();
+        videoElement.removeEventListener('canplay', handleCanPlay);
+      };
+      videoElement.addEventListener('canplay', handleCanPlay);
+      
+      return () => {
+        videoElement.removeEventListener('canplay', handleCanPlay);
+      };
     }
-    
-    setShowControls(true);
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 5000);
-  };
+  }, [autoPlay, videoUrl, videoElement, handlePlay]);
 
   const handleMouseMove = () => {
     resetControlsTimeout();
@@ -137,12 +169,29 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     const seconds = Math.floor(timeInSeconds % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
-
   return (
     <div 
       className="video-container" 
       onMouseMove={handleMouseMove}
-      style={{ height: dimensions.height }}
+      style={{ height: dimensions.height }}      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        onDragOver && onDragOver();
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDragLeave && onDragLeave();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const videoId = e.dataTransfer.getData('text/plain');
+        if (videoId && onDrop) {
+          onDrop(videoId);
+        }
+      }}
     >
       <Stage 
         width={dimensions.width} 
